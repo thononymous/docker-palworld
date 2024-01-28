@@ -1,0 +1,34 @@
+FROM ubuntu:jammy
+
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    apt-add-repository multiverse && \
+    dpkg --add-architecture i386 && \
+    apt-get update && \
+    apt-get install -s steamcmd | awk '/^Inst/ && !/steamcmd/ { print $2 }' > /tmp/steamcmd.deps && \
+    cat /tmp/steamcmd.deps | xargs apt-get install -y && \
+    cat /tmp/steamcmd.deps | xargs apt-mark auto && \
+    echo 'steamcmd steam/question select I AGREE' | debconf-set-selections && \ 
+    apt-get install -y -q --no-install-recommends steamcmd && \
+    apt-get clean && \
+    apt-get autoclean
+
+RUN addgroup --gid 1000 steam && \
+    adduser --system --home /home/steam --shell /bin/false --uid 1000 --ingroup steam steam && \
+    usermod -a -G tty steam && \
+    mkdir -m 777 /data && \
+    chown steam:steam /data /home/steam && \
+    ln -sf /usr/games/steamcmd /usr/bin/steamcmd && \
+    mkdir -p /home/steam/.steam
+
+USER steam
+
+RUN steamcmd +login anonymous +quit 
+
+RUN steamcmd +login anonymous +app_update 2394010 validate +quit
+
+# RUN /usr/lib/games/steam/steamcmd login anonymous +app_update 2394010 validate +quit
+
+# vim: set ts=4 sw=4 expandtab:
