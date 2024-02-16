@@ -37,6 +37,9 @@ USER root:root
 ENV HOME /root
 ENV USER root
 
+# link save dir to top level for easy volume mounting
+RUN ln -s /saves /home/pal/Steam/steamapps/common/PalServer/Pal/Saved
+
 # checkout sue
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y \

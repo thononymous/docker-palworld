@@ -1,4 +1,4 @@
-.PHONY: build start stop
+.PHONY: build start stop defconfig .env
 
 build:
 	docker buildx build --build-arg=username=pal -f Dockerfile.steamcmd -t steamcmd:ubuntu2204 .
@@ -7,16 +7,18 @@ build:
 saves:
 	mkdir saves
 
-## run style 
-# docker run -e UID=${UID} -e GID=${GID} --name=palworld --net=host -ti palworld
-
 GID := $(shell id -g)
 UID := $(shell id -u)
 
-start: saves 
+.env: 
 	echo "GID=${GID}" >.env
 	echo "UID=${UID}" >>.env
+
+start: saves .env
 	docker-compose up -d
+
+defconfig: .env
+	docker-compose run --rm -v ./saves:/saves palworld defconfig
 
 stop:
 	docker-compose down
