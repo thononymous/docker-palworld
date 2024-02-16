@@ -1,30 +1,62 @@
-FROM ubuntu:jammy
+######## INSTALL ########
 
-ENV DEBIAN_FRONTEND noninteractive
+# Set the base image
+FROM ubuntu:22.04
 
-RUN apt-get update && \
-    apt-get install -y software-properties-common && \
-    apt-add-repository multiverse && \
-    dpkg --add-architecture i386 && \
-    apt-get update && \
-    apt-get install -s steamcmd | awk '/^Inst/ && !/steamcmd/ { print $2 }' > /tmp/steamcmd.deps && \
-    cat /tmp/steamcmd.deps | xargs apt-get install -y && \
-    cat /tmp/steamcmd.deps | xargs apt-mark auto && \
-    echo 'steamcmd steam/question select I AGREE' | debconf-set-selections && \ 
-    apt-get install -y -q --no-install-recommends steamcmd && \
-    apt-get clean && \
-    apt-get autoclean
+# Set environment variables
+ENV USER root
+ENV HOME /root
 
-RUN addgroup --gid 1000 steam && \
-    adduser --system --home /home/steam --shell /bin/false --uid 1000 --ingroup steam steam && \
-    usermod -a -G tty steam && \
-    mkdir -m 777 /data && \
-    chown steam:steam /data /home/steam && \
-    ln -sf /usr/games/steamcmd /usr/bin/steamcmd && \
-    mkdir -p /home/steam/.steam
+# Set working directory
+WORKDIR $HOME
 
-USER steam
+# Insert Steam prompt answers
+SHELL ["/bin/bash", "-eo", "pipefail", "-c"]
+RUN echo steam steam/question select "I AGREE" | debconf-set-selections \
+ && echo steam steam/license note '' | debconf-set-selections
+SHELL ["/bin/bash", "-c"]
 
-RUN steamcmd +login anonymous +quit 
+# Update the repository and install SteamCMD
+ENV DEBIAN_FRONTEND=noninteractive
+RUN dpkg --add-architecture i386 \
+ && apt-get update -y \
+ && apt-get install -y --no-install-recommends ca-certificates locales steamcmd \
+ && rm -rf /var/lib/apt/lists/* \
+ && apt-get clean
+
+# Add unicode support
+RUN locale-gen en_US.UTF-8
+ENV LANG 'en_US.UTF-8'
+ENV LANGUAGE 'en_US:en'
+
+# Create symlink for executable
+RUN ln -s /usr/games/steamcmd /usr/bin/steamcmd
+
+# the user that will receive steamcmd packages
+USER ${username:-some_user}
+ARG username
+USER root       
+
+# create new user and group and switch
+RUN groupadd -g 9999 $username && \
+    useradd -m -d /home/$username -s /bin/bash -g $username -u 9999 $username
+
+USER $username:$username
+ENV HOME /home/$username
+ENV USER $username
+
+# Update SteamCMD and verify latest version
+RUN steamcmd +quit
+
+# Fix missing directories and libraries
+RUN mkdir -p $HOME/.steam \
+ && ln -s $HOME/.local/share/Steam/steamcmd/linux32 $HOME/.steam/sdk32 \
+ && ln -s $HOME/.local/share/Steam/steamcmd/linux64 $HOME/.steam/sdk64 \
+ && ln -s $HOME/.steam/sdk32/steamclient.so $HOME/.steam/sdk32/steamservice.so \
+ && ln -s $HOME/.steam/sdk64/steamclient.so $HOME/.steam/sdk64/steamservice.so
+
+# Set default command
+ENTRYPOINT ["steamcmd"]
+CMD ["+help", "+quit"]
 
 # vim: set ts=4 sw=4 expandtab:
