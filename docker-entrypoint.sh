@@ -2,9 +2,6 @@
 
 set -euxo pipefail
 
-env
-id
-
 # default uid and gid
 : "${UID:=1000}"
 : "${GID:=$UID}"
@@ -46,9 +43,10 @@ while [[ ! -z "$1" ]]; do
 done
 
 # fix uid and gid of all the shit
+groupmod -g $GID pal
 usermod -u $UID pal
-groupmod -g $UID pal
-find /home/pal -xdev -print0 | xargs -0 chown $UID:$GID
+find / -xdev -uid 9999 -print0 | xargs -r -0 -- chown -c -h --from=9999 $UID
+find / -xdev -gid 9999 -print0 | xargs -r -0 -- chown -c -h --from=:9999 :$GID
 
 # drop root and GOOOOO
 set -- sue $UID:$GID "$@"

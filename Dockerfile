@@ -26,6 +26,13 @@ FROM steamcmd:ubuntu2204
 # install palworld
 RUN steamcmd +login anonymous +app_update 2394010 validate +quit
 
+# install, i dunno sdk maybe?
+RUN steamcmd +login anonymous +app_update 1007 +quit 
+
+RUN cd $HOME/Steam/steamapps/common/PalServer/Pal/Binaries/Linux/ && \
+    cp $HOME/Steam/steamapps/common/Steamworks\ SDK\ Redist/linux64/steamclient.so ./ && \
+    ln -s steamclient.so steamservice.so
+
 USER root:root
 ENV HOME /root
 ENV USER root
