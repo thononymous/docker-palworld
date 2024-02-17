@@ -53,6 +53,6 @@ COPY --from=sue /sue/sue /bin/sue
 # add entrypoint
 ADD docker-entrypoint.sh /
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["Pal"]
+CMD ["Pal", "-useperfthreads", "-NoAsyncLoadingThread", "-UseMultithreadForDS"]
 
 # vim: set ts=4 sw=4 expandtab:
